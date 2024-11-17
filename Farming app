@@ -1,0 +1,102 @@
+'use client'
+
+import { useState } from 'react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Spinner } from "@/components/ui/spinner" // Assuming you have a spinner component
+
+export default function FarmingAssistant() {
+  const [cropType, setCropType] = useState('')
+  const [soilType, setSoilType] = useState('')
+  const [location, setLocation] = useState('')
+  const [recommendation, setRecommendation] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    setIsLoading(true)
+    setError('') // Reset error state
+    setRecommendation('') // Reset recommendation state
+
+    // Simple validation
+    if (!cropType || !soilType || !location) {
+      setError('All fields are required.')
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch weather data. Please check the location and try again.')
+      }
+      
+      const data = await response.json()
+      
+      // Process weather data and generate recommendation
+      setRecommendation(`Based on your input and local weather conditions in ${location}, we recommend planting ${cropType} in ${soilType} soil.`)
+
+      // Clear inputs after submission
+      setCropType('')
+      setSoilType('')
+      setLocation('')
+      
+    } catch (error) {
+      console.error('Error fetching weather data:', error)
+      setError(error.message || 'Error fetching weather data. Please try again later.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Farming Assistant</CardTitle>
+        <CardDescription>Get crop recommendations based on your inputs and local weather</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="cropType" className="text-sm font-medium">Crop Type:</label>
+            <Input
+              id="cropType"
+              value={cropType}
+              onChange={(e) => setCropType(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="soilType" className="text-sm font-medium">Soil Type:</label>
+            <Input
+              id="soilType"
+              value={soilType}
+              onChange={(e) => setSoilType(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="location" className="text-sm font-medium">Location:</label>
+            <Input
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              required
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? <Spinner size="small" /> : 'Get Recommendations'}
+          </Button>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+        </form>
+      </CardContent>
+      <CardFooter>
+        <div className="w-full text-center">
+          {recommendation && (
+            <p className="text-sm text-muted-foreground">{recommendation}</p>
+          )}
+        </div>
+      </
