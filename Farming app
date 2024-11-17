@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Spinner } from "@/components/ui/spinner" // Assuming you have a spinner component
+import { Spinner } from "@/components/ui/spinner" // Ensure you have a spinner component
 
 export default function FarmingAssistant() {
   const [cropType, setCropType] = useState('')
@@ -28,7 +28,7 @@ export default function FarmingAssistant() {
     }
 
     try {
-      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}`)
+      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${process.env.REACT_APP_WEATHER_API_KEY}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch weather data. Please check the location and try again.')
@@ -99,4 +99,7 @@ export default function FarmingAssistant() {
             <p className="text-sm text-muted-foreground">{recommendation}</p>
           )}
         </div>
-      </
+      </CardFooter>
+    </Card>
+  )
+}
