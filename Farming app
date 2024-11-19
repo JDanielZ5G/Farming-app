@@ -1,105 +1,141 @@
-'use client'
+            - name: Deploy to IBM Cloud Foundry
+  # You may pin to the exact commit or the version.
+  # uses: IBM/cloudfoundry-deploy@fcb5a74cb36e7cd0bfe9f9b5d9d57aab85d00bd1
+  uses: IBM/cloudfoundry-deploy@v2.1
+  with:
+    # IBM Cloud API key
+    IBM_CLOUD_API_KEY: 
+    # IBM Cloud Foundry API endpoint
+    IBM_CLOUD_CF_API: 
+    # IBM Cloud Foundry organization name
+    IBM_CLOUD_CF_ORG: 
+    # IBM Cloud Foundry space name
+    IBM_CLOUD_CF_SPACE: 
+    # App Manifest file
+    APP_MANIFEST_FILE: # optional, default is manifest.yml
+    # App variables file
+    APP_VARS_FILE: # optional
+    # IBM Cloud Foundry resource group
+    RESOURCE_GROUP: # optional
+           This workflow will build and push a new container image to Alibaba Cloud Container Registry (ACR),
+# and then will deploy it to Alibaba Cloud Container Service for Kubernetes (ACK), when there is a push to the "main" branch.
+#
+# To use this workflow, you will need to complete the following set-up steps:
+#
+# 1. Create an ACR repository to store your container images.
+#    You can use ACR EE instance for more security and better performance.
+#    For instructions see https://www.alibabacloud.com/help/doc-detail/142168.htm
+#
+# 2. Create an ACK cluster to run your containerized application.
+#    You can use ACK Pro cluster for more security and better performance.
+#    For instructions see https://www.alibabacloud.com/help/doc-detail/95108.htm
+#
+# 3. Store your AccessKey pair in GitHub Actions secrets named `ACCESS_KEY_ID` and `ACCESS_KEY_SECRET`.
+#    For instructions on setting up secrets see: https://developer.github.com/actions/managing-workflows/storing-secrets/
+#
+# 4. Change the values for the REGION_ID, REGISTRY, NAMESPACE, IMAGE, ACK_CLUSTER_ID, and ACK_DEPLOYMENT_NAME.
+#
 
-import { useState } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Spinner } from "@/components/ui/spinner" // Ensure you have a spinner component
+name: Build and Deploy to ACK
 
-export default function FarmingAssistant() {
-  const [cropType, setCropType] = useState('')
-  const [soilType, setSoilType] = useState('')
-  const [location, setLocation] = useState('')
-  const [recommendation, setRecommendation] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+on:
+  push:
+    branches: [ "main" ]
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
-    setIsLoading(true)
-    setError('') // Reset error state
-    setRecommendation('') // Reset recommendation state
+# Environment variables available to all jobs and steps in this workflow.
+env:
+  REGION_ID: cn-hangzhou
+  REGISTRY: registry.cn-hangzhou.aliyuncs.com
+  NAMESPACE: namespace
+  IMAGE: repo
+  TAG: ${{ github.sha }}
+  ACK_CLUSTER_ID: clusterID
+  ACK_DEPLOYMENT_NAME: nginx-deployment
 
-    // Simple validation
-    if (!cropType || !soilType || !location) {
-      setError('All fields are required.')
-      setIsLoading(false)
-      return
-    }
+  ACR_EE_REGISTRY: myregistry.cn-hangzhou.cr.aliyuncs.com
+  ACR_EE_INSTANCE_ID: instanceID
+  ACR_EE_NAMESPACE: namespace
+  ACR_EE_IMAGE: repo
+  ACR_EE_TAG: ${{ github.sha }}
 
-    try {
-      const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${location}&appid=${process.env.REACT_APP_WEATHER_API_KEY}`)
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch weather data. Please check the location and try again.')
-      }
-      
-      const data = await response.json()
-      
-      // Process weather data and generate recommendation
-      setRecommendation(`Based on your input and local weather conditions in ${location}, we recommend planting ${cropType} in ${soilType} soil.`)
+permissions:
+  contents: read
 
-      // Clear inputs after submission
-      setCropType('')
-      setSoilType('')
-      setLocation('')
-      
-    } catch (error) {
-      console.error('Error fetching weather data:', error)
-      setError(error.message || 'Error fetching weather data. Please try again later.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment: production
 
-  return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>Farming Assistant</CardTitle>
-        <CardDescription>Get crop recommendations based on your inputs and local weather</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="cropType" className="text-sm font-medium">Crop Type:</label>
-            <Input
-              id="cropType"
-              value={cropType}
-              onChange={(e) => setCropType(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="soilType" className="text-sm font-medium">Soil Type:</label>
-            <Input
-              id="soilType"
-              value={soilType}
-              onChange={(e) => setSoilType(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="location" className="text-sm font-medium">Location:</label>
-            <Input
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              required
-            />
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? <Spinner size="small" /> : 'Get Recommendations'}
-          </Button>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-        </form>
-      </CardContent>
-      <CardFooter>
-        <div className="w-full text-center">
-          {recommendation && (
-            <p className="text-sm text-muted-foreground">{recommendation}</p>
-          )}
-        </div>
-      </CardFooter>
-    </Card>
-  )
-}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    # 1.1 Login to ACR
+    - name: Login to ACR with the AccessKey pair
+      uses: aliyun/acr-login@v1
+      with:
+        region-id: "${{ env.REGION_ID }}"
+        access-key-id: "${{ secrets.ACCESS_KEY_ID }}"
+        access-key-secret: "${{ secrets.ACCESS_KEY_SECRET }}"
+
+    # 1.2 Build and push image to ACR
+    - name: Build and push image to ACR
+      run: |
+        docker build --tag "$REGISTRY/$NAMESPACE/$IMAGE:$TAG" .
+        docker push "$REGISTRY/$NAMESPACE/$IMAGE:$TAG"
+
+    # 1.3 Scan image in ACR
+    - name: Scan image in ACR
+      uses: aliyun/acr-scan@v1
+      with:
+        region-id: "${{ env.REGION_ID }}"
+        access-key-id: "${{ secrets.ACCESS_KEY_ID }}"
+        access-key-secret: "${{ secrets.ACCESS_KEY_SECRET }}"
+        repository: "${{ env.NAMESPACE }}/${{ env.IMAGE }}"
+        tag: "${{ env.TAG }}"
+
+    # 2.1 (Optional) Login to ACR EE
+    - uses: actions/checkout@v4
+    - name: Login to ACR EE with the AccessKey pair
+      uses: aliyun/acr-login@v1
+      with:
+        login-server: "https://${{ env.ACR_EE_REGISTRY }}"
+        region-id: "${{ env.REGION_ID }}"
+        access-key-id: "${{ secrets.ACCESS_KEY_ID }}"
+        access-key-secret: "${{ secrets.ACCESS_KEY_SECRET }}"
+        instance-id: "${{ env.ACR_EE_INSTANCE_ID }}"
+
+    # 2.2 (Optional) Build and push image ACR EE
+    - name: Build and push image to ACR EE
+      run: |
+        docker build -t "$ACR_EE_REGISTRY/$ACR_EE_NAMESPACE/$ACR_EE_IMAGE:$TAG" .
+        docker push "$ACR_EE_REGISTRY/$ACR_EE_NAMESPACE/$ACR_EE_IMAGE:$TAG"
+    # 2.3 (Optional) Scan image in ACR EE
+    - name: Scan image in ACR EE
+      uses: aliyun/acr-scan@v1
+      with:
+        region-id: "${{ env.REGION_ID }}"
+        access-key-id: "${{ secrets.ACCESS_KEY_ID }}"
+        access-key-secret: "${{ secrets.ACCESS_KEY_SECRET }}"
+        instance-id: "${{ env.ACR_EE_INSTANCE_ID }}"
+        repository: "${{ env.ACR_EE_NAMESPACE}}/${{ env.ACR_EE_IMAGE }}"
+        tag: "${{ env.ACR_EE_TAG }}"
+
+    # 3.1 Set ACK context
+    - name: Set K8s context
+      uses: aliyun/ack-set-context@v1
+      with:
+        access-key-id: "${{ secrets.ACCESS_KEY_ID }}"
+        access-key-secret: "${{ secrets.ACCESS_KEY_SECRET }}"
+        cluster-id: "${{ env.ACK_CLUSTER_ID }}"
+
+    # 3.2 Deploy the image to the ACK cluster
+    - name: Set up Kustomize
+      run: |-
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash /dev/stdin 3.8.6
+    - name: Deploy
+      run: |-
+        ./kustomize edit set image REGISTRY/NAMESPACE/IMAGE:TAG=$REGISTRY/$NAMESPACE/$IMAGE:$TAG
+        ./kustomize build . | kubectl apply -f -
+        kubectl rollout status deployment/$ACK_DEPLOYMENT_NAME
+        kubectl get services -o wide
