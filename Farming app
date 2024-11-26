@@ -1,3 +1,9 @@
+# My Kubernetes Project
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/c5ce6e5b-5061-444c-bc3a-a111987d3847/deploy-status)](https://app.netlify.com/sites/farmingapps/deploys)
+
+This project deploys a Kubernetes application using GitHub Actions and Netlify.
+
 [build]
   publish = "public"
   command = "npm run build"
