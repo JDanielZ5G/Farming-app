@@ -1,4 +1,16 @@
-            - name: Deploy to IBM Cloud Foundry
+[build]
+  publish = "public"
+  command = "npm run build"
+
+[context.production.environment]
+  NODE_VERSION = "14"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+- name: Deploy to IBM Cloud Foundry
   # You may pin to the exact commit or the version.
   # uses: IBM/cloudfoundry-deploy@fcb5a74cb36e7cd0bfe9f9b5d9d57aab85d00bd1
   uses: IBM/cloudfoundry-deploy@v2.1
